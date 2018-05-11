@@ -30,6 +30,14 @@ class MenuLayout extends React.Component {
                             </a>
                         </Link>
                     </Menu.Item>
+                    <Menu.Item key="4">
+                        <Link href="/userteam">
+                            <a>
+                                <Icon type="usergroup-add" />
+                                <span>แก้ไข user ในทีม</span>
+                            </a>
+                        </Link>
+                    </Menu.Item>
                     <Menu.Item key="2">
                         <Link href="/question">
                             <a>

@@ -1,168 +1,207 @@
 import React, { Component } from 'react';
 import { Table, Button, Modal, Row, Col, Input, Select } from 'antd';
-import Layout from '../src/layout'
 import axios from 'axios'
+import Layout from '../src/layout'
+
+const { URL_SERVICE } = process.env
 
 const Option = Select.Option;
+const confirm = Modal.confirm;
+
 const columns = [{
-    title: 'question',
-    dataIndex: 'question',
-    key: 'question',
+    title: 'team',
+    dataIndex: 'team',
+    key: 'team',
 }, {
     title: 'mange',
     dataIndex: 'manage',
     key: 'manage',
 }];
-class TeamManage extends Component {
+
+
+const getIndexIfObjWithAttr = function (array, attr, value) {
+    for (var i = 0; i < array.length; i++) {
+        if (array[i][attr] === value) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+class Team extends Component {
+
     state = {
-        disableAddButton: true,
-        disableRemoveButton: true,
-        visibleAdd: 'block',
+        visibleEdit: false,
+        visibleAdd: false,
+        buttonDisable: true,
         input: '',
-        team_id: '',
-        selecterValue: '',
-        users: [],
-        teams: [
-            { _id: 'ssdasjfapfdjpaj', team_name: 'bor bork' },
-            { _id: 'asdasdasdasd', team_name: 'old team' }
-        ],
-        dataSource: [{
-            key: '1',
-            question: 'Mike',
-            manage: <Button onClick={() => this.showModalEdit(1)} >แก้ไข</Button>
-        }, {
-            key: '2',
-            question: 'John',
-            manage: <Button onClick={() => this.showModalEdit(1)} >แก้ไข</Button>
-        }]
+        teams: [],
+        editData: {},
+        index: '',
+        indexQuestion: '',
+        dataSource: []
     }
 
-    componentDidMount() {
-        this.getTeam()
-        this.getUser()
-        console.log('hello' + this.state.dataSource[0].question);
-
+    componentDidMount = () => {
+        this.getTeamService()
     }
 
-    getTeam = () => {
-        axios.get(`http://localhost:4000/get-team`)
-            .then((response) => {
-                let newTeam = []
-                response.data.map(e => {
-                    newTeam.push({ _id: e._id, team: e.team })
-                })
-                const newState = { ...this.state, teams: newTeam }
-                this.setState(newState)
+    getTeamService = () => {
+        axios.get(`${URL_SERVICE}/get-team`)
+            .then(async (response) => {
+                await this.setState({ teams: response.data })
+                this.setTable()
             })
-        console.log('hello' + this.state.dataSource);
     }
 
-    getUser = () => {
-        axios.get(`http://localhost:4000/get-user`)
-            .then((response) => {
-                let newUser = []
-                response.data.map(e => {
-                    newUser.push({ _id: e.userId, name: e.user })
-                })
-                const newState = { ...this.state, users: newUser }
-                this.setState(newState)
-            })
-        console.log(this.state);
-
-    }
-
-    addTeamButton = () => {
-        // if ( this.state.visibleAdd === 'block') {
-        //     this.setState({visibleAdd: 'none'})
-        // }
-        // if ( this.state.visibleAdd === 'none') {
-        //     this.setState({visibleAdd: 'block'})
-        // }
-        axios.post(`http://localhost:4000/add-team`, { team: this.state.input })
-            .then((response) => {
-                console.log('OK');
-                this.getTeam()
-                this.getUser()
-            })
-        this.setState({ input: '' })
-        console.log(this.state);
-
-    }
-
-    deleteTeamButton = () => {
-        axios.post(`http://localhost:4000/remove-team`, { teamId: this.state.team_id })
-            .then((response) => {
-                console.log('OK', this.state.team_id);
-                this.getTeam()
-                this.getUser()
-            })
-        this.setState({ selecterValue: '' })
-    }
-
-    editTeamButton = () => {
-        axios.post(`http://localhost:4000/edit-team`, { teamId: this.state.team_id, team: this.state.input })
-            .then((response) => {
-                console.log('OK', this.state.team_id);
-                this.getTeam()
-                this.getUser()
-            })
-        this.setState({ input: '' })
-        this.setState({ selecterValue: '' })
-    }
-
-    handleInput = (e) => {
-        let disabledButton
-        if (!e.target.value) {
-            disabledButton = true
+    changeTeam = (index) => {
+        if (index !== '') {
+            this.setTable(index)
+            this.setState({ buttonDisable: false, index })
         } else {
-            disabledButton = false
+            this.setState({
+                dataSource: [],
+                buttonDisable: true
+            })
         }
-        this.setState({ ...this.state, input: e.target.value, disableAddButton: disabledButton })
     }
 
-    changeTeam = (value) => {
-        let newState = {}
-        if (value === '') {
-            newState = { ...this.setState, disableRemoveButton: true, team_id: value, selecterValue: value }
-        } else {
-            newState = { ...this.setState, disableRemoveButton: false, team_id: value, selecterValue: value }
+    setTable = () => {
+        const { teams } = this.state
+        const dataSource = []
+        teams.forEach((row, index) => {
+            const obj = {
+                key: index,
+                team: row.team,
+                manage: <div>
+                    <Button onClick={() => this.showModalEdit(row)} ghost type="primary" >แก้ไข</Button>&nbsp;
+                    <Button onClick={() => this.showConfirm(row)} ghost type="danger" >ลบ</Button>
+                </div>
+            }
+            dataSource.push(obj)
+        });
+        this.setState({ dataSource })
+    }
+
+    changeInput = (e) => {
+        this.setState({
+            input: e.target.value,
+        })
+    }
+
+
+    showModalAdd = () => {
+        this.setState({
+            visibleAdd: true,
+        });
+    }
+    handleOkAdd = async () => {
+        const { input, teams } = this.state
+        const temp = teams
+        const body = { team: input }
+        const res = await axios.post(`${URL_SERVICE}/add-team`, body).then(() => {
+            this.setState({
+                visibleAdd: false,
+            });
+            this.getTeamService()
+        })
+        this.clearInput()
+    }
+
+    showModalEdit = (row) => {
+        this.setState({
+            editData: row,
+            input: row.team,
+            visibleEdit: true,
+        });
+    }
+
+    handleOkEdit = async () => {
+        const { editData, input } = this.state
+        const body = {
+            teamId: editData._id,
+            team: input
         }
-        this.setState(newState)
+        const res = await axios.post(`${URL_SERVICE}/edit-team`, body).then(() => {
+            this.setState({
+                visibleEdit: false,
+            });
+            this.getTeamService()
+        })
+        this.clearInput()
+    }
+
+    handleCancel = () => {
+        this.setState({
+            visibleEdit: false,
+            visibleAdd: false,
+        });
+        this.clearInput()
+    }
+
+    clearInput = () => {
+        this.setState({
+            input: '',
+        });
+    }
+
+    deleteItem = async (row) => {
+        const body = {
+            teamId: row._id
+        }
+        await axios.post(`${URL_SERVICE}/remove-team`, body).then(() => {
+            this.setState({
+                visibleEdit: false,
+            });
+            this.getTeamService()
+        })
+    }
+
+    showConfirm = (row) => {
+        const _this = this
+        confirm({
+            title: 'Do you Want to delete these items?',
+            onOk() {
+                _this.deleteItem(row)
+            },
+        });
     }
 
     render() {
+        const { dataSource, visibleAdd, visibleEdit, input, teams, buttonDisable } = this.state
         return (
             <Layout activeMenu='1' >
-                <h1> จัดการทีม </h1>
-                <Row>
-                    <Col span={18}>
-                        <Select defaultValue="" style={{ width: 200 }} onChange={this.changeTeam}>
-                            <Option value={this.state.selecterValue}>เลือกทีม</Option>
-                            {
-                                this.state.teams.map((option, index) =>
-                                    <Option key={option._id} value={option._id}>{option.team}</Option>
-                                )
-                            }
-                        </Select>
-                    </Col>
-                    <Col span={2}>
-                        <Button onClick={this.addTeamButton} disabled={this.state.disableAddButton} >เพิ่มทีม</Button>
-                    </Col>
-                    <Col span={2}>
-                        <Button onClick={this.deleteTeamButton} disabled={this.state.disableRemoveButton} >ลบทีม</Button>
-                    </Col>
-                    <Col span={2}>
-                        <Button onClick={this.editTeamButton} disabled={this.state.disableRemoveButton} >แก้ไขชื่อ</Button>
-                    </Col>
-                    <Input style={{ display: `${this.state.visibleAdd}` }} onChange={this.handleInput} value={this.state.input} />
-                </Row>
-                {
-                    this.state.team_id && <Table dataSource={this.state.dataSource} columns={columns} />
-                }
+
+                <h1>จัดการทีม</h1>
+                <br />
+                <Button type="primary" onClick={() => this.showModalAdd()} >เพิ่ม</Button>
+                <br />
+                <br />
+
+                <Table dataSource={dataSource} columns={columns} />
+
+                <br />
+                <Modal
+                    title="เพิ่ม"
+                    visible={visibleAdd}
+                    onOk={this.state.input ? this.handleOkAdd : null}
+                    onCancel={this.handleCancel}
+                >
+                    <Input value={input} onChange={this.changeInput} placeholder="กรอกชื่อที่ต้องการ" />
+                </Modal>
+
+                <Modal
+                    title="แก้ไข"
+                    visible={visibleEdit}
+                    onOk={this.state.input ? this.handleOkEdit : null}
+                    onCancel={this.handleCancel}
+                >
+                    <Input value={input} onChange={this.changeInput} placeholder="กรอกชื่อที่ต้องการ" />
+                </Modal>
 
             </Layout>
         );
     }
 }
 
-export default TeamManage;
+export default Team;
