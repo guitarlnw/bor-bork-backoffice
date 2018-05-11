@@ -38,6 +38,14 @@ class MenuLayout extends React.Component {
                             </a>
                         </Link>
                     </Menu.Item>
+                    <Menu.Item key="3">
+                        <Link href="/notifications">
+                            <a>
+                                <Icon type="clock-circle-o" />
+                                <span>จัดการการแจ้งเตือน</span>
+                            </a>
+                        </Link>
+                    </Menu.Item>
                 </Menu>
             </Sider>
         );
