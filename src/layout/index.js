@@ -3,6 +3,8 @@ import Menu from './Menu'
 import { Layout, Breadcrumb } from 'antd';
 const { Content, Footer } = Layout;
 
+process.env.URL_SERVICE = 'http://localhost:4000'
+
 const LayoutTemplate = (props) =>
     <div>
         <Head>
