@@ -27,7 +27,8 @@ class NotificationsManagement extends Component {
             },
             close_hour: '5',
             watcher: '',
-            team: ''
+            team: '',
+            hasSelectedteam: false
         };
       }
     
@@ -76,6 +77,88 @@ class NotificationsManagement extends Component {
         this.updateCronJob1()
         this.updateCronJob2()
         this.updateCronJob3()
+    }
+
+
+    handleTeamSelectedChange = async (value) => {
+        await this.setState({team: value, hasSelectedteam: true})
+        console.log(value)
+        this.getNotificationByTeam()
+    }
+
+    getNotificationByTeam = () => {
+        
+        fetch(process.env.URL_SERVICE+'/get-noti-by-team/'+this.state.team)
+            .then(response => response.json())
+            // .then(data => console.log(data))
+            .then(data => {
+                if(data.cronjob.first.schedule != ""){
+                    console.log(data.cronjob)
+                    let first_cronjob = data.cronjob.first.schedule.split(" ")
+                    let close_cronjob = data.cronjob.close.schedule.split(" ")
+                    let remind_cronjob = data.cronjob.remind.schedule.split(" ")
+
+                    let noti_hour = first_cronjob[2]
+                    let noti_min = first_cronjob[1]
+                    let day_of_week = first_cronjob[5].split(",")
+
+                    console.log(day_of_week)
+
+                    let remind_hour = remind_cronjob[2] - noti_hour
+                    let remind_min = remind_cronjob[1]
+                    
+                    let close_hour = close_cronjob[2] - noti_hour
+
+                    console.log("noti:" + noti_hour +":"+ noti_min)
+                    console.log("day of week:" + day_of_week)
+                    console.log("remind:" + remind_hour+":"+remind_min)
+                    console.log("close hour:"+close_hour)
+                    
+                    this.setState({ 
+                        noti_day_of_week: day_of_week,
+                        noti_time: {
+                            hour: noti_hour.toString(),
+                            min: noti_min.toString()
+                        },
+                        remind_time: {
+                            hour: remind_hour.toString(),
+                            min: remind_min.toString()
+                        },
+                        close_hour: close_hour.toString(),
+                        watcher: (data.watcher_slack_id != null)? data.watcher_slack_id : ''
+                    })
+                }
+                else{
+                    this.setState({ 
+                        noti_day_of_week: '',
+                        noti_time: {
+                            hour: '',
+                            min: ''
+                        },
+                        remind_time: {
+                            hour: '',
+                            min: ''
+                        },
+                        close_hour: '',
+                        watcher: ''
+                    })
+                }
+
+                this.setState({ 
+                    noti_day_of_week: '',
+                    noti_time: {
+                        hour: '',
+                        min: ''
+                    },
+                    remind_time: {
+                        hour: '',
+                        min: ''
+                    },
+                    close_hour: '',
+                    watcher: ''
+                })
+                
+            })
     }
 
     updateCronJob1 = () => {
@@ -129,12 +212,6 @@ class NotificationsManagement extends Component {
         })
     }
 
-
-    handleTeamSelectedChange = (value) => {
-        this.setState({team: value})
-        console.log(value)
-    }
-
     async getUsers() {
         await fetch(process.env.URL_SERVICE+'/get-user')
             .then(response => response.json())
@@ -175,9 +252,11 @@ class NotificationsManagement extends Component {
         //set user
         if(this.state.users.length > 0) {
             for (let i = 0; i < this.state.users.length; i++) {
-                usersList.push(<Option key={this.state.users[i]._id}>{this.state.users[i].user}</Option>);
+                usersList.push(<Option key={this.state.users[i].userId}>{this.state.users[i].user}</Option>);
             }
         }
+
+        console.log(this.state.noti_day_of_week)
         
         return (
             <Layout activeMenu='3' >
@@ -189,20 +268,20 @@ class NotificationsManagement extends Component {
                             placeholder="เลือกทีม"
                             optionFilterProp="children"
                             onChange={this.handleTeamSelectedChange}
-                            // onFocus={handleFocus}
-                            // onBlur={handleBlur}
                             filterOption={(input, option) => option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}
                         >
                             {teamsList}
                         </Select>
                     </FormItem>
-                
+                    <div style={{ display: (this.state.hasSelectedteam) ? 'block' : 'none' }}>
                     <FormItem label="วันที่แจ้งเตือน">
                         <Select
                             mode="multiple"
                             style={{ width: '100%' }}
                             placeholder="เลือกวันที่แจ้งเตือน"
-                            // defaultValue={['a10', 'c12']} TODO: get from current cronjob by team
+                            defaultValue={['1','2']}
+                            // value={['1','2','3']}
+                            // value={this.state.noti_day_of_week}
                             onChange={(e) => this.handleChange(e, 'noti_day_of_week')}
                         >
                             {daysList}
@@ -211,17 +290,21 @@ class NotificationsManagement extends Component {
 
                     <FormItem label="เวลาที่เริ่มถาม" >
                         <TimePicker defaultValue={moment(this.state.noti_time.hour+'.'+this.state.noti_time.min, format)} format={format} 
-                        onChange={(e) => this.handleChange(e, 'noti_time')}/>
+                        onChange={(e) => this.handleChange(e, 'noti_time')}
+                        value={moment(this.state.noti_time.hour+'.'+this.state.noti_time.min, format)}
+                        />
                     </FormItem>
 
                     <FormItem label="แจ้งเตือนถัดไปในอีก (ชั่วโมง:นาที)" >
                         <TimePicker defaultValue={moment(this.state.remind_time.hour+'.'+this.state.remind_time.min, format)} minuteStep={30} format={format}
-                        onChange={(e) => this.handleChange(e, 'remind_time')} />
+                        onChange={(e) => this.handleChange(e, 'remind_time')}
+                        value={moment(this.state.remind_time.hour+'.'+this.state.remind_time.min, format)} />
                     </FormItem>
 
                     <FormItem label="จำกัดชั่วโมงการปิดการรับคำตอบ" >
                         <Select onChange={(e) => this.handleChange(e, 'close_hour')}
-                        defaultValue={this.state.close_hour} >
+                        defaultValue={this.state.close_hour}
+                        value={this.state.close_hour} >
                             {hoursList}
                         </Select>
                     </FormItem>
@@ -233,6 +316,7 @@ class NotificationsManagement extends Component {
                             placeholder="เลือกผู้รับการแจ้งเตือน"
                             optionFilterProp="children"
                             onChange={(e) => this.handleChange(e, 'watcher')}
+                            value={this.state.watcher}
                             // onFocus={handleFocus}
                             // onBlur={handleBlur}
                             filterOption={(input, option) => option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}
@@ -244,6 +328,7 @@ class NotificationsManagement extends Component {
                     <FormItem >
                         <Button type="primary" htmlType="submit">Save</Button>
                     </FormItem>
+                    </div>
                 </Form>
             </Layout>
         );
