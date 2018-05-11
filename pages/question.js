@@ -57,7 +57,10 @@ class Question extends Component {
             this.setTable(index)
             this.setState({ buttonDisable: false, index })
         } else {
-            this.setState({ buttonDisable: true })
+            this.setState({
+                dataSource: [],
+                buttonDisable: true
+            })
         }
     }
 
