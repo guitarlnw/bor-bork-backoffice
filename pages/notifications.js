@@ -131,14 +131,14 @@ class NotificationsManagement extends Component {
                     this.setState({ 
                         noti_day_of_week: '',
                         noti_time: {
-                            hour: '',
-                            min: ''
+                            hour: '00',
+                            min: '00'
                         },
                         remind_time: {
-                            hour: '',
-                            min: ''
+                            hour: '00',
+                            min: '00'
                         },
-                        close_hour: '',
+                        close_hour: '1',
                         watcher: ''
                     })
                 }
@@ -146,14 +146,14 @@ class NotificationsManagement extends Component {
                 this.setState({ 
                     noti_day_of_week: '',
                     noti_time: {
-                        hour: '',
-                        min: ''
+                        hour: '00',
+                        min: '00'
                     },
                     remind_time: {
-                        hour: '',
-                        min: ''
+                        hour: '00',
+                        min: '00'
                     },
-                    close_hour: '',
+                    close_hour: '1',
                     watcher: ''
                 })
                 
