@@ -213,9 +213,6 @@ class Question extends Component {
                 <Table dataSource={dataSource} columns={columns} />
 
                 <br />
-
-
-
                 <Modal
                     title="เพิ่มคำถาม"
                     visible={visibleAdd}
