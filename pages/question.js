@@ -111,9 +111,6 @@ class Question extends Component {
                 }
 
                 <br />
-
-
-
                 <Modal
                     title="เพิ่มคำถาม"
                     visible={visibleAdd}
