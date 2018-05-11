@@ -17,9 +17,15 @@ class NotificationsManagement extends Component {
             teams: [],
             users: [],
             noti_day_of_week: '',
-            noti_time: {},
-            remind_time: {},
-            close_hour: '',
+            noti_time: {
+                hour: '09',
+                min: '05'
+            },
+            remind_time: {
+                hour: '01',
+                min: '00'
+            },
+            close_hour: '5',
             watcher: '',
             team: ''
         };
@@ -204,17 +210,18 @@ class NotificationsManagement extends Component {
                     </FormItem>
 
                     <FormItem label="เวลาที่เริ่มถาม" >
-                        <TimePicker defaultValue={moment('9.05', format)} format={format} 
+                        <TimePicker defaultValue={moment(this.state.noti_time.hour+'.'+this.state.noti_time.min, format)} format={format} 
                         onChange={(e) => this.handleChange(e, 'noti_time')}/>
                     </FormItem>
 
                     <FormItem label="แจ้งเตือนถัดไปในอีก (ชั่วโมง:นาที)" >
-                        <TimePicker defaultValue={moment('0.00', format)} minuteStep={30} format={format}
+                        <TimePicker defaultValue={moment(this.state.remind_time.hour+'.'+this.state.remind_time.min, format)} minuteStep={30} format={format}
                         onChange={(e) => this.handleChange(e, 'remind_time')} />
                     </FormItem>
 
                     <FormItem label="จำกัดชั่วโมงการปิดการรับคำตอบ" >
-                        <Select onChange={(e) => this.handleChange(e, 'close_hour')}>
+                        <Select onChange={(e) => this.handleChange(e, 'close_hour')}
+                        defaultValue={this.state.close_hour} >
                             {hoursList}
                         </Select>
                     </FormItem>
