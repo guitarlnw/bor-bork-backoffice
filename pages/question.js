@@ -1,8 +1,12 @@
 import React, { Component } from 'react';
 import { Table, Button, Modal, Row, Col, Input, Select } from 'antd';
+import axios from 'axios'
 import Layout from '../src/layout'
 
+const { URL_SERVICE } = process.env
+
 const Option = Select.Option;
+const confirm = Modal.confirm;
 
 const columns = [{
     title: 'question',
@@ -14,32 +18,67 @@ const columns = [{
     key: 'manage',
 }];
 
+
+const getIndexIfObjWithAttr = function (array, attr, value) {
+    for (var i = 0; i < array.length; i++) {
+        if (array[i][attr] === value) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 class Question extends Component {
 
     state = {
         visibleEdit: false,
         visibleAdd: false,
+        buttonDisable: true,
         input: '',
-        team_id: '',
-        teams: [
-            { _id: 'ssdasjfapfdjpaj', team_name: 'bor bork' },
-            { _id: 'asdasdasdasd', team_name: 'old team' }
-        ],
-        dataSource: [{
-            key: '1',
-            question: 'Mike',
-            manage: <Button onClick={() => this.showModalEdit(1)} >แก้ไข</Button>
-        }, {
-            key: '2',
-            question: 'John',
-            manage: <Button onClick={() => this.showModalEdit(1)} >แก้ไข</Button>
-        }]
+        teams: [],
+        index: '',
+        indexQuestion: '',
+        dataSource: []
     }
 
-    changeTeam = (value) => {
-        this.setState({
-            team_id: value,
-        })
+    componentDidMount = () => {
+        this.getTeamService()
+    }
+
+    getTeamService = () => {
+        axios.get(`${URL_SERVICE}/get-team`)
+            .then((response) => {
+                this.setState({ teams: response.data })
+            })
+    }
+
+    changeTeam = (index) => {
+        if (index !== '') {
+            this.setTable(index)
+            this.setState({ buttonDisable: false, index })
+        } else {
+            this.setState({
+                dataSource: [],
+                buttonDisable: true
+            })
+        }
+    }
+
+    setTable = (index) => {
+        const { teams } = this.state
+        const dataSource = []
+        teams[index].question.forEach((row, index) => {
+            const obj = {
+                key: index,
+                question: row.question,
+                manage: <div>
+                    <Button onClick={() => this.showModalEdit(row.id)} ghost type="primary" >แก้ไข</Button>&nbsp;
+                    <Button onClick={() => this.showConfirm(row.id)} ghost type="danger" >ลบ</Button>
+                </div>
+            }
+            dataSource.push(obj)
+        });
+        this.setState({ dataSource })
     }
 
     changeInput = (e) => {
@@ -54,22 +93,52 @@ class Question extends Component {
             visibleAdd: true,
         });
     }
-    handleOkAdd = () => {
-        this.setState({
-            visibleAdd: false,
+    handleOkAdd = async () => {
+        const { input, index, teams } = this.state
+        const temp = teams
+        const body = { question: input, _id: teams[index]._id }
+        const res = await axios.post(`${URL_SERVICE}/add-question`, body).then(response => response.data)
+        temp[index].question = []
+        await res.resultOnNewDate.question.forEach(newData => {
+            temp[index].question.push({ id: newData.id, question: newData.question })
         });
+        await this.setState({
+            visibleAdd: false,
+            teams: temp,
+        });
+        this.setTable(index)
         this.clearInput()
     }
 
-    showModalEdit = () => {
+    showModalEdit = (questionId) => {
+        const { teams, index } = this.state
+        const questionArr = teams[index].question
+        const indexQuestion = getIndexIfObjWithAttr(questionArr, 'id', questionId)
+        const question = questionArr[indexQuestion]
         this.setState({
             visibleEdit: true,
+            indexQuestion,
+            input: question.question,
         });
     }
-    handleOkEdit = () => {
-        this.setState({
+
+    handleOkEdit = async () => {
+        const { input, index, teams, indexQuestion } = this.state
+        const temp = teams
+        const question = teams[index].question[indexQuestion]
+        const body = {
+            question_id: question.id,
+            question: input,
+            team_id: teams[index]._id
+        }
+        const res = await axios.post(`${URL_SERVICE}/update-question`, body).then(response => response.data)
+
+        temp[index].question = res.question
+        await this.setState({
             visibleEdit: false,
+            teams: temp,
         });
+        this.setTable(index)
         this.clearInput()
     }
 
@@ -87,8 +156,40 @@ class Question extends Component {
         });
     }
 
+    deleteItem = async () => {
+        const { input, index, teams, indexQuestion } = this.state
+        const temp = teams
+        const question = teams[index].question[indexQuestion]
+        const body = {
+            question_id: question.id,
+            team_id: teams[index]._id
+        }
+        const res = await axios.post(`${URL_SERVICE}/delete-question`, body).then(response => response.data)
+        temp[index].question = res.question
+        await this.setState({
+            teams: temp,
+        });
+        this.setTable(index)
+    }
+
+    showConfirm = (questionId) => {
+        const _this = this
+        const { teams, index } = this.state
+        const questionArr = teams[index].question
+        const indexQuestion = getIndexIfObjWithAttr(questionArr, 'id', questionId)
+        this.setState({
+            indexQuestion,
+        });
+        confirm({
+            title: 'Do you Want to delete these items?',
+            onOk() {
+                _this.deleteItem()
+            },
+        });
+    }
+
     render() {
-        const { dataSource, visibleAdd, visibleEdit, input, teams, team_id } = this.state
+        const { dataSource, visibleAdd, visibleEdit, input, teams, buttonDisable } = this.state
         return (
             <Layout activeMenu='2' >
 
@@ -98,22 +199,20 @@ class Question extends Component {
                     <Option value="">เลือกทีม</Option>
                     {
                         teams.map((option, index) =>
-                            <Option key={+index} value={option._id}>{option.team_name}</Option>
+                            <Option key={+index} value={index}>{option.team}</Option>
                         )
                     }
                 </Select>
 
-                <Button onClick={() => this.showModalAdd(1)} >เพิ่มคำถาม</Button>
-
-
-                {
-                    team_id && <Table dataSource={dataSource} columns={columns} />
-                }
-
+                <br />
+                <br />
+                <Button type="primary" disabled={buttonDisable} onClick={() => this.showModalAdd()} >เพิ่มคำถาม</Button>
+                <br />
                 <br />
 
+                <Table dataSource={dataSource} columns={columns} />
 
-
+                <br />
                 <Modal
                     title="เพิ่มคำถาม"
                     visible={visibleAdd}
@@ -126,10 +225,10 @@ class Question extends Component {
                 <Modal
                     title="แก้ไข"
                     visible={visibleEdit}
-                    onOk={this.handleOkEdit}
+                    onOk={this.state.input ? this.handleOkEdit : null}
                     onCancel={this.handleCancel}
                 >
-                    <Input value={input} placeholder="กรอกคำถามที่ต้องการ" />
+                    <Input value={input} onChange={this.changeInput} placeholder="กรอกคำถามที่ต้องการ" />
                 </Modal>
 
             </Layout>

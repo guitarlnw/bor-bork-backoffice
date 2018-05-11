@@ -1,8 +1,7 @@
 import React, { Component } from 'react';
 import Layout from '../src/layout'
-import { Row, Col, Form, TimePicker, Button, Select, InputNumber } from 'antd';
+import { Row, Col, Form, TimePicker, Button, Select, InputNumber, message } from 'antd';
 import moment from 'moment';
-
 
 const FormItem = Form.Item;
 const Option = Select.Option;
@@ -162,7 +161,7 @@ class NotificationsManagement extends Component {
     }
 
     updateCronJob1 = () => {
-        fetch(process.env.URL_SERVICE+'/update-cronjob-1/', {
+    fetch(process.env.URL_SERVICE+'/update-cronjob-1/', {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -174,7 +173,9 @@ class NotificationsManagement extends Component {
                 firstHour: this.state.noti_time.hour,
                 dayOfWeek: this.state.noti_day_of_week
             })
-        })
+        }).then((response) => {
+            response.status === 200 ? message.info('Saved!') : message.info('Error!')
+        }).catch((error) => message.info('Error!'))
     }
 
     updateCronJob2 = () => {
