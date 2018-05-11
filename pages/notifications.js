@@ -280,7 +280,7 @@ class NotificationsManagement extends Component {
                             mode="multiple"
                             style={{ width: '100%' }}
                             placeholder="เลือกวันที่แจ้งเตือน"
-                            defaultValue={['1','2']}
+                            defaultValue={['1','2','3']}
                             // value={['1','2','3']}
                             // value={this.state.noti_day_of_week}
                             onChange={(e) => this.handleChange(e, 'noti_day_of_week')}
